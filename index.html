@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>einsvamp — Spectre monotile tilings</title>
+    <meta
+      name="description"
+      content="Generate and export tilings of the Spectre, the chiral aperiodic monotile that tiles the plane without reflections."
+    />
+  </head>
+  <body>
+    <div id="app">
+      <aside id="sidebar">
+        <header>
+          <h1>einsvamp</h1>
+          <p class="sub">
+            Tilings of the <strong>Spectre</strong> — the chiral aperiodic monotile
+            that covers the plane with no reflections and no repeating pattern.
+          </p>
+        </header>
+
+        <div id="controls"></div>
+
+        <footer>
+          <div class="actions">
+            <button id="export" type="button" class="primary">Export SVG</button>
+            <button id="copy-link" type="button">Copy link</button>
+            <button id="randomize" type="button">Randomise</button>
+            <button id="reset" type="button">Reset</button>
+          </div>
+          <p class="credit">
+            After Smith, Myers, Kaplan &amp; Goodman-Strauss,
+            <em>A chiral aperiodic monotile</em> (2023).
+          </p>
+        </footer>
+      </aside>
+
+      <main id="stage" aria-label="Tiling preview"></main>
+      <span id="status" role="status"></span>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

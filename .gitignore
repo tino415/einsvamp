@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# Both are tangled from ~/org/repositories.org, not authored here.
+/default.nix
+/.dir-locals.el
+
+# Playwright output
+tool/screenshots/
