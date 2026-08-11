@@ -32,13 +32,44 @@ function hexToHsl(hex: string): Hsl {
 
 const clamp01 = (n: number): number => Math.min(1, Math.max(0, n));
 
-function hslToCss({ h, s, l }: Hsl): string {
-  const hh = ((h % 360) + 360) % 360;
-  return `hsl(${hh.toFixed(1)} ${(clamp01(s) * 100).toFixed(1)}% ${(clamp01(l) * 100).toFixed(1)}%)`;
+/**
+ * Emit `#rrggbb`, not `hsl(...)`. Browsers accept CSS Color 4 syntax happily,
+ * but Illustrator's SVG parser rejects the whole file over it — and hex is
+ * understood by every consumer.
+ */
+function hslToHex({ h, s, l }: Hsl): string {
+  const hh = (((h % 360) + 360) % 360) / 360;
+  const ss = clamp01(s);
+  const ll = clamp01(l);
+
+  let r = ll;
+  let g = ll;
+  let b = ll;
+
+  if (ss !== 0) {
+    const q = ll < 0.5 ? ll * (1 + ss) : ll + ss - ll * ss;
+    const p2 = 2 * ll - q;
+    const hue = (t: number): number => {
+      let tt = t;
+      if (tt < 0) tt += 1;
+      if (tt > 1) tt -= 1;
+      if (tt < 1 / 6) return p2 + (q - p2) * 6 * tt;
+      if (tt < 1 / 2) return q;
+      if (tt < 2 / 3) return p2 + (q - p2) * (2 / 3 - tt) * 6;
+      return p2;
+    };
+    r = hue(hh + 1 / 3);
+    g = hue(hh);
+    b = hue(hh - 1 / 3);
+  }
+
+  const hex = (v: number): string =>
+    Math.round(clamp01(v) * 255).toString(16).padStart(2, '0');
+  return `#${hex(r)}${hex(g)}${hex(b)}`;
 }
 
 function adjust(hsl: Hsl, p: Params): string {
-  return hslToCss({
+  return hslToHex({
     h: hsl.h + (p.hueShift as number),
     s: hsl.s * (p.saturation as number),
     l: hsl.l * (p.lightness as number),

@@ -51,3 +51,9 @@ Pages.
 - Every substitution round mirrors all placements, so handedness flips per
   level; `buildTiling` compensates with a global flip at odd depths. Tiles must
   all share one handedness, never mix.
+- **Exported SVG must stay SVG 1.1 friendly.** Illustrator rejects the whole
+  document over syntax Chrome accepts. So: colours are emitted as `#rrggbb`
+  only — never `hsl()`/`rgb()`/`oklch()` — and `<use>` gets both `href` and
+  `xlink:href`. `tool/e2e.ts` asserts both; do not "modernise" them.
+- Validate export changes against a non-browser parser, not just Chromium:
+  `nix-shell -p libxml2 librsvg --run 'xmllint --noout f.svg && rsvg-convert f.svg -o /tmp/x.png'`.

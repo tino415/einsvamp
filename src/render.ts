@@ -20,6 +20,7 @@ import { type Params } from './params.ts';
 import { colorTiles } from './color.ts';
 
 const NS = 'http://www.w3.org/2000/svg';
+const XLINK = 'http://www.w3.org/1999/xlink';
 
 const el = <K extends keyof SVGElementTagNameMap>(name: K): SVGElementTagNameMap[K] =>
   document.createElementNS(NS, name);
@@ -129,6 +130,8 @@ export function render(p: Params, size: number): RenderResult {
 
   const svg = el('svg');
   svg.setAttribute('xmlns', NS);
+  svg.setAttribute('xmlns:xlink', XLINK);
+  svg.setAttribute('version', '1.1');
   svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
   svg.setAttribute('width', String(size));
   svg.setAttribute('height', String(size));
@@ -136,14 +139,23 @@ export function render(p: Params, size: number): RenderResult {
   const defs = el('defs');
   svg.appendChild(defs);
 
-  // One reusable outline per distinct shape; each tile is a <use> with its own
-  // transform and fill. Keeps both the DOM and the exported file small.
   const shapeIds: ShapeId[] = p.system === 'hat-turtle' ? ['A', 'B'] : ['A'];
+  const outlineD: Record<string, string> = {};
   for (const sid of shapeIds) {
-    const path = el('path');
-    path.setAttribute('id', `tile-${sid}`);
-    path.setAttribute('d', outlinePath(outlines[sid], p, Math.max(prec, 3)));
-    defs.appendChild(path);
+    outlineD[sid] = outlinePath(outlines[sid], p, Math.max(prec, 3));
+  }
+
+  // Two ways to place tiles. <use> against one shared outline keeps the file
+  // small; standalone <path> repeats the outline per tile but survives editors
+  // that handle <use> poorly. Same geometry either way.
+  const flatten = p.flatten as boolean;
+  if (!flatten) {
+    for (const sid of shapeIds) {
+      const path = el('path');
+      path.setAttribute('id', `tile-${sid}`);
+      path.setAttribute('d', outlineD[sid]);
+      defs.appendChild(path);
+    }
   }
 
   if (p.clipMode !== 'none') {
@@ -202,14 +214,21 @@ export function render(p: Params, size: number): RenderResult {
 
   placed.forEach((t, i) => {
     const m = mul(view, t.xform);
-    const use = el('use');
-    use.setAttribute('href', `#tile-${t.shape}`);
-    use.setAttribute(
-      'transform',
-      `matrix(${f(m[0])} ${f(m[3])} ${f(m[1])} ${f(m[4])} ${f(m[2])} ${f(m[5])})`,
-    );
-    use.setAttribute('fill', colors[i]);
-    g.appendChild(use);
+    const transform = `matrix(${f(m[0])} ${f(m[3])} ${f(m[1])} ${f(m[4])} ${f(m[2])} ${f(m[5])})`;
+    let node: SVGElement;
+    if (flatten) {
+      node = el('path');
+      node.setAttribute('d', outlineD[t.shape]);
+    } else {
+      node = el('use');
+      // Both spellings: `href` is SVG 2, and Illustrator only honours the
+      // SVG 1.1 `xlink:href`.
+      node.setAttribute('href', `#tile-${t.shape}`);
+      node.setAttributeNS(XLINK, 'xlink:href', `#tile-${t.shape}`);
+    }
+    node.setAttribute('transform', transform);
+    node.setAttribute('fill', colors[i]);
+    g.appendChild(node);
   });
 
   return { svg, tileCount: placed.length };

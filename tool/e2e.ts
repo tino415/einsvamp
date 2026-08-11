@@ -12,6 +12,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 
 const BASE = process.argv[2] ?? 'http://dev.local:4114/';
 const SHOTS = 'tool/screenshots';
+/** Tiles are <path> when flattened and <use> otherwise — match both. */
+const TILE_SEL = '#stage svg g > *';
 
 let failures = 0;
 let checks = 0;
@@ -63,7 +65,7 @@ await page.goto(BASE, { waitUntil: 'networkidle' });
 await page.waitForSelector('#stage svg', { timeout: 10_000 });
 
 {
-  const n = await page.locator('#stage svg use').count();
+  const n = await page.locator(TILE_SEL).count();
   ok(n === 559, 'default view renders 559 tiles', `got ${n}`);
 
   const status = (await page.locator('#status').textContent()) ?? '';
@@ -83,21 +85,21 @@ const before = await page.locator('#stage svg').innerHTML();
 
 // Subdivisions up one level.
 await setRange('p-subdivisions', 4);
-await page.waitForFunction(() => document.querySelectorAll('#stage svg use').length === 4401, null, { timeout: 15_000 })
+await page.waitForFunction(() => document.querySelectorAll('#stage svg g > *').length === 4401, null, { timeout: 15_000 })
   .then(() => ok(true, 'subdivisions=4 yields 4401 tiles'))
   .catch(async () => ok(false, 'subdivisions=4 yields 4401 tiles',
-    `got ${await page.locator('#stage svg use').count()}`));
+    `got ${await page.locator(TILE_SEL).count()}`));
 
 await page.screenshot({ path: `${SHOTS}/02-depth4.png` });
 
 await setRange('p-subdivisions', 3);
-await page.waitForFunction(() => document.querySelectorAll('#stage svg use').length === 559);
+await page.waitForFunction(() => document.querySelectorAll('#stage svg g > *').length === 559);
 
 // Straight edges.
 await page.locator('#p-curved').uncheck();
 await settle();
 {
-  const d = (await page.locator('#stage svg defs path').getAttribute('d')) ?? '';
+  const d = (await page.locator('#stage svg g > path').first().getAttribute('d')) ?? '';
   ok(!d.includes('C'), 'straight-edge mode emits no bezier segments', d.slice(0, 80));
   ok(d.includes('L'), 'straight-edge mode emits line segments', d.slice(0, 80));
 }
@@ -105,7 +107,7 @@ await page.screenshot({ path: `${SHOTS}/03-straight.png` });
 await page.locator('#p-curved').check();
 await settle();
 {
-  const d = (await page.locator('#stage svg defs path').getAttribute('d')) ?? '';
+  const d = (await page.locator('#stage svg g > path').first().getAttribute('d')) ?? '';
   ok(d.includes('C'), 'curved mode emits bezier segments', d.slice(0, 80));
 }
 
@@ -133,7 +135,7 @@ const sweep: [string, string][] = [
 for (const [id, value] of sweep) {
   await page.locator(`#${id}`).selectOption(value);
   await settle();
-  const count = await page.locator('#stage svg use').count();
+  const count = await page.locator(TILE_SEL).count();
   ok(count > 0, `select ${id}=${value} still renders`, `${count} tiles`);
 }
 
@@ -162,7 +164,7 @@ const ranges: [string, number][] = [
 ];
 for (const [id, value] of ranges) {
   await setRange(id, value);
-  const count = await page.locator('#stage svg use').count();
+  const count = await page.locator(TILE_SEL).count();
   ok(count > 0, `range ${id}=${value} still renders`, `${count} tiles`);
 }
 
@@ -190,11 +192,11 @@ console.log('\nState round-trip');
 // ---- reset / randomise ----
 await page.locator('#reset').click();
 await settle();
-ok((await page.locator('#stage svg use').count()) === 559, 'reset restores the default tiling');
+ok((await page.locator(TILE_SEL).count()) === 559, 'reset restores the default tiling');
 
 await page.locator('#randomize').click();
 await settle();
-ok((await page.locator('#stage svg use').count()) > 0, 'randomise produces a valid tiling');
+ok((await page.locator(TILE_SEL).count()) > 0, 'randomise produces a valid tiling');
 await page.screenshot({ path: `${SHOTS}/05-random.png` });
 
 await page.locator('#reset').click();
@@ -218,19 +220,65 @@ console.log('\nExport');
 
   ok(text.startsWith('<?xml'), 'exported file is an XML document');
   ok(text.includes('xmlns="http://www.w3.org/2000/svg"'), 'exported SVG declares its namespace');
-  const uses = (text.match(/<use /g) ?? []).length;
-  ok(uses === 559, 'exported SVG contains every tile', `${uses} <use> elements`);
+  const tiles559 = (text.match(/<(use|path) /g) ?? []).length;
+  ok(tiles559 === 559, 'exported SVG contains every tile', `${tiles559} tile elements`);
   ok(!/NaN|undefined|Infinity/.test(text), 'exported SVG has no NaN/undefined coordinates');
+
+  // Illustrator's parser is far stricter than a browser's: it rejects CSS
+  // Color 4 syntax outright and only honours the SVG 1.1 xlink:href.
+  ok(!/hsl\(|rgb\(|color\(|oklch\(/.test(text),
+    'exported SVG uses only hex colours (no CSS Color 4 functions)',
+    (text.match(/(hsl|rgb|color|oklch)\([^)]*\)/) ?? [''])[0]);
+  ok(text.includes('xmlns:xlink="http://www.w3.org/1999/xlink"'),
+    'exported SVG declares the xlink namespace');
+  ok(text.includes('version="1.1"'), 'exported SVG declares version 1.1');
+  ok(!/ href="/.test(text) || / xlink:href="/.test(text),
+    'any href is accompanied by xlink:href');
 
   // The export must be a valid standalone document a renderer will accept.
   const page3 = await ctx.newPage();
   await page3.setContent(
     `<body style="margin:0">${text.replace(/^<\?xml[^>]*\?>\s*/, '')}</body>`,
   );
-  const rendered = await page3.locator('svg use').count();
+  const rendered = await page3.locator('svg g > *').count();
   ok(rendered === 559, 'exported SVG re-renders standalone in a browser', `${rendered} tiles`);
   await page3.screenshot({ path: `${SHOTS}/06-export-rendered.png` });
   await page3.close();
+
+  ok(text.includes('<path '), 'default export writes standalone paths');
+}
+
+// The same export in <use> mode — the compact form, where xlink:href matters.
+{
+  await page.locator('#p-flatten').uncheck();
+  await settle();
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download', { timeout: 15_000 }),
+    page.locator('#export').click(),
+  ]);
+  const stream = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const c of stream) chunks.push(c as Buffer);
+  const text = Buffer.concat(chunks).toString('utf8');
+  writeFileSync(`${SHOTS}/export-use.svg`, text);
+
+  const uses = (text.match(/<use /g) ?? []).length;
+  ok(uses === 559, '<use> export contains every tile', `${uses} <use> elements`);
+  const xlinks = (text.match(/xlink:href="#tile-/g) ?? []).length;
+  ok(xlinks === 559, 'every <use> carries xlink:href for Illustrator', `${xlinks} found`);
+  ok(!/hsl\(/.test(text), '<use> export also uses hex colours');
+
+  const page4 = await ctx.newPage();
+  await page4.setContent(
+    `<body style="margin:0">${text.replace(/^<\?xml[^>]*\?>\s*/, '')}</body>`,
+  );
+  ok((await page4.locator('svg g > use').count()) === 559,
+    '<use> export re-renders standalone in a browser');
+  await page4.close();
+
+  await page.locator('#p-flatten').check();
+  await settle();
 }
 
 ok(errors.length === 0, 'no console errors during the whole run',

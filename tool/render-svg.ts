@@ -17,6 +17,10 @@ class El {
   setAttribute(k: string, v: unknown): void {
     this.attrs.set(k, String(v));
   }
+  /** The qualified name already carries the prefix, so the namespace is unused. */
+  setAttributeNS(_ns: string, k: string, v: unknown): void {
+    this.attrs.set(k, String(v));
+  }
   getAttribute(k: string): string | null {
     return this.attrs.get(k) ?? null;
   }

@@ -73,7 +73,25 @@ Groups: **Tiling** (system, subdivision depth, start cluster), **Shape** (curved
 edges, curve depth/start/end, tile inset, corner rounding), **View** (zoom, pan,
 rotation, clipping), **Colour** (eight colouring modes, eight palettes, hue /
 saturation / lightness / opacity), **Stroke**, **Background**, **Noise** (seed,
-position and rotation jitter) and **Export** (size, coordinate precision).
+position and rotation jitter) and **Export** (size, coordinate precision,
+standalone paths).
+
+### Export compatibility
+
+Illustrator's SVG parser is much stricter than a browser's, and it refuses a
+whole file over things Chrome accepts silently. Two rules the exporter follows:
+
+- **Colours are always plain `#rrggbb`.** CSS Color 4 syntax such as
+  `hsl(24.2 42.5% 64.5%)` renders fine in a browser and makes Illustrator reject
+  the document.
+- **`<use>` carries both `href` and `xlink:href`.** The bare `href` is SVG 2;
+  Illustrator only honours the SVG 1.1 `xlink:href`.
+
+**Standalone paths** (on by default) writes every tile as its own `<path>`
+rather than a `<use>` referencing one shared outline. The file is roughly 3x
+larger — about 300 kB against 87 kB at depth 3 — but every editor handles it,
+and each tile arrives as a directly selectable object. Turn it off for the
+compact form when the file is destined for the web rather than an editor.
 
 Drag the canvas to pan, scroll to zoom.
 

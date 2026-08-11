@@ -134,6 +134,10 @@ export const PARAMS: ParamDef[] = [
     min: 1, max: 6, step: 1, def: 3,
     hint: 'Fewer decimals means a much smaller SVG file.',
   },
+  {
+    key: 'flatten', label: 'Standalone paths', group: 'Export', type: 'toggle', def: true,
+    hint: 'Write every tile as its own <path> instead of a reused <use>. Larger file, but Illustrator and other editors handle it reliably.',
+  },
 ];
 
 export const GROUPS = [...new Set(PARAMS.map((p) => p.group))];
