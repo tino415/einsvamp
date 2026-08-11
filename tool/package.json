@@ -1,0 +1,10 @@
+{
+  "name": "einsvamp-tool",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Test-only dependencies, kept out of the root manifest so deploy builds never install them",
+  "dependencies": {
+    "playwright-core": "1.56.1"
+  }
+}

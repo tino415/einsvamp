@@ -21,7 +21,6 @@
   },
   "include": [
     "src",
-    "tool",
     "vite.config.ts"
   ]
 }

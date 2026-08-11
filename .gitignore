@@ -9,3 +9,5 @@ dist/
 
 # Playwright output
 tool/screenshots/
+tool/node_modules/
+.wrangler/

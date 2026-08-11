@@ -10,13 +10,15 @@
     "preview": "vite preview --host dev.local --port 4114",
     "check": "node --experimental-strip-types src/check.ts",
     "typecheck": "tsc --noEmit",
-    "e2e": "node --experimental-strip-types tool/e2e.ts",
-    "render": "node --experimental-strip-types tool/render-svg.ts"
+    "e2e": "npm --prefix tool install --no-audit --no-fund --silent && node --experimental-strip-types tool/e2e.ts",
+    "render": "node --experimental-strip-types tool/render-svg.ts",
+    "deploy": "npm run build && wrangler deploy",
+    "typecheck:tool": "npm --prefix tool install --no-audit --no-fund --silent && tsc -p tsconfig.tool.json"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",
-    "playwright-core": "^1.56.1",
     "typescript": "^5.9.3",
-    "vite": "^7.1.9"
+    "vite": "^7.1.9",
+    "wrangler": "^4.120.1"
   }
 }

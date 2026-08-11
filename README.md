@@ -39,6 +39,7 @@ nx up                  # dev server on http://dev.local:4114
 | `nx npm run build` | Type-check, then build static `dist/` |
 | `nx npm run check` | Geometric assertions on the tiling core (no browser) |
 | `nx npm run e2e` | Playwright run against the dev server, with screenshots |
+| `nx npm run deploy` | Build, then `wrangler deploy` |
 | `nx npm run render out.svg key=value…` | Render an SVG headlessly |
 
 `check` is the important one: a wrong angle or substitution rule still *renders*,
@@ -50,13 +51,21 @@ inflation factor converges to 2.80588.
 
 ## Deploying
 
-```sh
-nx npm run build
-```
+Cloudflare deploys from GitHub on push to `main`. `wrangler.jsonc` declares an
+**assets-only** deployment — there is no Worker script, the site is just the
+output of `vite build`. Without that file wrangler tries to scaffold a Worker on
+every build and fails trying to rewrite `vite.config.ts`.
 
-Upload `dist/` to Cloudflare Pages (build command `npm run build`, output
-directory `dist`). `base` is relative, so it also works from a subpath. Nothing
-is fetched from any external host at runtime.
+The root `package.json` carries only build dependencies (vite, typescript,
+wrangler); the Playwright test dependency lives in `tool/package.json`, so
+deploy builds never install it. `base` is relative, so the site also works from
+a subpath, and nothing is fetched from any external host at runtime.
+
+To deploy by hand:
+
+```sh
+nx npm run deploy      # build, then wrangler deploy
+```
 
 ## Parameters
 

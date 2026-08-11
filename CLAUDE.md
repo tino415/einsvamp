@@ -14,8 +14,13 @@ Pages.
 - Dev server is on port **4114** (`dev.local:4114`); 4115–4117 belong to other
   projects.
 - Playwright browsers come from nixpkgs via `PLAYWRIGHT_BROWSERS_PATH`, not from
-  `npx playwright install`. Keep `playwright-core` in `package.json` in step
-  with `pkgs.playwright-driver` (1.56.1).
+  `npx playwright install`. `playwright-core` lives in **`tool/package.json`**,
+  not the root manifest, so Cloudflare deploy builds never install it. Its
+  version is pinned **exactly** to `pkgs.playwright-driver` (1.56.1) — a caret
+  range resolves to a newer release that expects browser builds nixpkgs does not
+  ship, and `npm run e2e` then fails with "please run npx playwright install".
+- `tsconfig.json` covers `src` only; `tsconfig.tool.json` adds `tool`. Keep it
+  that way — `npm run build` runs `tsc` and must not need `tool/node_modules`.
 
 ## Layout
 

@@ -1,0 +1,7 @@
+{
+  // Type-checks the test tooling. Separate from tsconfig.json on purpose:
+  // `npm run build` must not need tool/node_modules, which deploy builds
+  // never install.
+  "extends": "./tsconfig.json",
+  "include": ["tool", "src"]
+}
