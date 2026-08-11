@@ -13,6 +13,16 @@ const btnReset = document.getElementById('reset') as HTMLButtonElement;
 const btnRandom = document.getElementById('randomize') as HTMLButtonElement;
 const btnCopy = document.getElementById('copy-link') as HTMLButtonElement;
 
+// Build identity, so the page in front of you can be tied to a commit.
+// Visible in the sidebar footer, on the console, and as window.EINSVAMP_BUILD.
+const BUILD = { sha: __BUILD_SHA__, time: __BUILD_TIME__ };
+(window as unknown as Record<string, unknown>).EINSVAMP_BUILD = BUILD;
+const buildEl = document.getElementById('build');
+if (buildEl) {
+  buildEl.textContent = `build ${BUILD.sha} · ${BUILD.time.replace('T', ' ').replace('Z', ' UTC')}`;
+}
+console.info(`einsvamp build ${BUILD.sha} (${BUILD.time})`);
+
 let state: Params = location.hash.length > 1 ? decodeParams(location.hash) : defaults();
 
 const PREVIEW = 900;

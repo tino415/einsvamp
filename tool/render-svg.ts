@@ -40,6 +40,9 @@ function serialize(node: El): string {
 }
 
 const g = globalThis as Record<string, unknown>;
+// Normally injected by vite's `define`; supply them for the node run.
+g.__BUILD_SHA__ = process.env.WORKERS_CI_COMMIT_SHA?.slice(0, 7) ?? 'headless';
+g.__BUILD_TIME__ = '1970-01-01T00:00:00Z';
 g.document = { createElementNS: (_ns: string, tag: string) => new El(tag) };
 g.XMLSerializer = class {
   serializeToString(node: El): string {

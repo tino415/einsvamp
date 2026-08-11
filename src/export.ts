@@ -11,7 +11,8 @@ export function svgSource(p: Params): string {
   svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
   const body = new XMLSerializer().serializeToString(svg);
-  return `<?xml version="1.0" encoding="UTF-8"?>\n${body}\n`;
+  const stamp = `<!-- einsvamp build ${__BUILD_SHA__} (${__BUILD_TIME__}) - https://github.com/tino415/einsvamp -->`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n${stamp}\n${body}\n`;
 }
 
 export function downloadSvg(p: Params, filename = 'einsvamp.svg'): number {
