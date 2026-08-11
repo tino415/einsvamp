@@ -12,7 +12,6 @@
     "typecheck": "tsc --noEmit",
     "e2e": "npm --prefix tool install --no-audit --no-fund --silent && node --experimental-strip-types tool/e2e.ts",
     "render": "node --experimental-strip-types tool/render-svg.ts",
-    "deploy": "npm run build && wrangler deploy",
     "typecheck:tool": "npm --prefix tool install --no-audit --no-fund --silent && tsc -p tsconfig.tool.json"
   },
   "devDependencies": {
